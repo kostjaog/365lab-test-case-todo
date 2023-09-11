@@ -1,21 +1,23 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Post } from './posts.model';
 import { HttpService } from '@nestjs/axios';
 import { AxiosResponse } from 'axios';
 
+import { Todo } from './todo.model';
+import { SSO_HOST } from 'src/core/config';
+
 @Injectable()
-export class PostsService {
+export class TodoService {
   constructor(
-    @InjectModel('post') private readonly postModel: Model<Post>,
+    @InjectModel('todo') private readonly todoModel: Model<Todo>,
     private readonly httpService: HttpService,
   ) {}
 
-  async createPost(token: string, title: string, description: string) {
+  async createTodo(token: string, title: string, description: string) {
     try {
       const user: AxiosResponse<{ userId: string }> =
-        await this.httpService.axiosRef.get('http://localhost:3000/users/', {
+        await this.httpService.axiosRef.get(`http://${SSO_HOST}:3000/users/`, {
           withCredentials: true,
           headers: {
             cookie: token,
@@ -24,13 +26,13 @@ export class PostsService {
       if (!user.data.userId) {
         throw new UnauthorizedException('Bad token');
       }
-      const newPost = new this.postModel({
+      const newTodo = new this.todoModel({
         ownerId: user.data.userId,
         title,
         description,
       });
-      await newPost.save();
-      return newPost;
+      await newTodo.save();
+      return newTodo;
     } catch (err) {
       throw new Error(err.message);
     }
@@ -39,7 +41,7 @@ export class PostsService {
   async getAllMy(token: string) {
     try {
       const user: AxiosResponse<{ userId: string }> =
-        await this.httpService.axiosRef.get('http://localhost:3000/users/', {
+        await this.httpService.axiosRef.get(`http://${SSO_HOST}:3000/users/`, {
           withCredentials: true,
           headers: {
             cookie: token,
@@ -48,21 +50,21 @@ export class PostsService {
       if (!user.data.userId) {
         throw new UnauthorizedException('Bad token');
       }
-      const posts = await this.postModel.find({ ownerId: user.data.userId });
-      return posts;
+      const todos = await this.todoModel.find({ ownerId: user.data.userId });
+      return todos;
     } catch (err) {
       throw new Error(err.message);
     }
   }
 
-  async deleteOne(token: string, postId: string) {
+  async deleteOne(token: string, todoId: string) {
     try {
-      const candidate = await this.postModel.findById(postId);
+      const candidate = await this.todoModel.findById(todoId);
       if (!candidate) {
-        throw new Error('Post with provided id does not exist.');
+        throw new Error('Todo with provided id does not exist.');
       }
       const user: AxiosResponse<{ userId: string }> =
-        await this.httpService.axiosRef.get('http://localhost:3000/users/', {
+        await this.httpService.axiosRef.get(`http://${SSO_HOST}:3000/users/`, {
           withCredentials: true,
           headers: {
             cookie: token,
@@ -74,7 +76,7 @@ export class PostsService {
       if (candidate.ownerId !== user.data.userId) {
         throw new UnauthorizedException('Bad token');
       }
-      await this.postModel.deleteOne({ id: postId });
+      await this.todoModel.deleteOne({ id: todoId });
       return candidate.id;
     } catch (err) {
       throw new Error(err.message);

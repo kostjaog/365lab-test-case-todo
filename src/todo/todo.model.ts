@@ -1,6 +1,6 @@
 import * as mongoose from 'mongoose';
 
-export const PostSchema = new mongoose.Schema(
+export const TodoSchema = new mongoose.Schema(
   {
     ownerId: {
       type: String,
@@ -21,7 +21,7 @@ export const PostSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-export interface Post extends mongoose.Document {
+export interface Todo extends mongoose.Document {
   _id: string;
   ownerId: string;
   title: string;
