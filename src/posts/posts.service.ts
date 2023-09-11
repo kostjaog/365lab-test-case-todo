@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Post } from './posts.model';
@@ -15,15 +15,15 @@ export class PostsService {
   async createPost(token: string, title: string, description: string) {
     try {
       const user: AxiosResponse<{ userId: string }> =
-        await this.httpService.axiosRef.get(
-          'http://localhost:3000/users/whoami',
-          {
-            withCredentials: true,
-            headers: {
-              cookie: token,
-            },
+        await this.httpService.axiosRef.get('http://localhost:3000/users/', {
+          withCredentials: true,
+          headers: {
+            cookie: token,
           },
-        );
+        });
+      if (!user.data.userId) {
+        throw new UnauthorizedException('Bad token');
+      }
       const newPost = new this.postModel({
         ownerId: user.data.userId,
         title,
@@ -32,22 +32,22 @@ export class PostsService {
       await newPost.save();
       return newPost;
     } catch (err) {
-      throw new Error('Unauthorized');
+      throw new Error(err.message);
     }
   }
 
   async getAllMy(token: string) {
     try {
       const user: AxiosResponse<{ userId: string }> =
-        await this.httpService.axiosRef.get(
-          'http://localhost:3000/users/whoami',
-          {
-            withCredentials: true,
-            headers: {
-              cookie: token,
-            },
+        await this.httpService.axiosRef.get('http://localhost:3000/users/', {
+          withCredentials: true,
+          headers: {
+            cookie: token,
           },
-        );
+        });
+      if (!user.data.userId) {
+        throw new UnauthorizedException('Bad token');
+      }
       const posts = await this.postModel.find({ ownerId: user.data.userId });
       return posts;
     } catch (err) {
@@ -62,17 +62,17 @@ export class PostsService {
         throw new Error('Post with provided id does not exist.');
       }
       const user: AxiosResponse<{ userId: string }> =
-        await this.httpService.axiosRef.get(
-          'http://localhost:3000/users/whoami',
-          {
-            withCredentials: true,
-            headers: {
-              cookie: token,
-            },
+        await this.httpService.axiosRef.get('http://localhost:3000/users/', {
+          withCredentials: true,
+          headers: {
+            cookie: token,
           },
-        );
+        });
+      if (!user.data.userId) {
+        throw new UnauthorizedException('Bad token');
+      }
       if (candidate.ownerId !== user.data.userId) {
-        throw new Error('Is not an owner');
+        throw new UnauthorizedException('Bad token');
       }
       await this.postModel.deleteOne({ id: postId });
       return candidate.id;
